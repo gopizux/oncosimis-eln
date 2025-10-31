@@ -11,7 +11,7 @@ A modern, secure Electronic Lab Notebook (ELN) system built for Oncosimis Biotec
 -  Chemical inventory management with expiry tracking
 -  Real-time dashboard with analytics
 -  Audit trail for compliance
--  AlphaFold-inspired UI design
+-  Oncosimis Logo-inspired UI design
 
 ## Tech Stack
 
@@ -29,5 +29,4 @@ A modern, secure Electronic Lab Notebook (ELN) system built for Oncosimis Biotec
 
 ## Installation
 
-1. Clone the repository:
-# oncosimis-eln
+1. Clone the repository
