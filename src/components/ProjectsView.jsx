@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { Plus, Search, Edit2, Trash2, Users, Check, X } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Users, Check, X, Paperclip, Upload, Download, File } from 'lucide-react'
 import './SharedStyles.css'
 
 function ProjectsView({ profile }) {
@@ -8,12 +8,14 @@ function ProjectsView({ profile }) {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [formData, setFormData] = useState({
     project_id: '',
     title: '',
     description: '',
     status: 'Pending Approval'
   })
+  const [selectedFiles, setSelectedFiles] = useState([])
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
@@ -42,26 +44,87 @@ function ProjectsView({ profile }) {
     }
   }
 
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files)
+    setSelectedFiles(files)
+  }
+
+  const uploadFiles = async (projectId) => {
+    if (selectedFiles.length === 0) return []
+
+    setUploadingFiles(true)
+    const uploadedFiles = []
+
+    try {
+      for (const file of selectedFiles) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${projectId}/${Date.now()}_${file.name}`
+        
+        const { data, error } = await supabase.storage
+          .from('project-attachments')
+          .upload(fileName, file)
+
+        if (error) throw error
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('project-attachments')
+          .getPublicUrl(fileName)
+
+        uploadedFiles.push({
+          name: file.name,
+          path: fileName,
+          url: publicUrl,
+          size: file.size,
+          type: file.type,
+          uploaded_at: new Date().toISOString()
+        })
+      }
+
+      return uploadedFiles
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      throw error
+    } finally {
+      setUploadingFiles(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      let attachments = []
+      
       if (editingId) {
-        // Update existing project
+        // Get existing attachments
+        const { data: existingProject } = await supabase
+          .from('projects')
+          .select('attachments')
+          .eq('id', editingId)
+          .single()
+
+        attachments = existingProject?.attachments || []
+
+        // Upload new files if any
+        if (selectedFiles.length > 0) {
+          const newFiles = await uploadFiles(formData.project_id)
+          attachments = [...attachments, ...newFiles]
+        }
+
         const { error } = await supabase
           .from('projects')
           .update({
             title: formData.title,
             description: formData.description,
             status: formData.status,
+            attachments: attachments,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingId)
 
         if (error) throw error
 
-        // Log to audit trail
         await supabase.from('audit_trail').insert([
           {
             record_id: `AUDIT-${Date.now()}`,
@@ -69,28 +132,40 @@ function ProjectsView({ profile }) {
             entity_id: editingId,
             action: 'updated',
             performed_by: profile.id,
-            details: { title: formData.title }
+            details: { title: formData.title, files_added: selectedFiles.length }
           }
         ])
       } else {
         // Create new project
-        const { error } = await supabase
+        const { data: newProject, error } = await supabase
           .from('projects')
           .insert([
             {
               ...formData,
-              created_by: profile.id
+              created_by: profile.id,
+              attachments: []
             }
           ])
+          .select()
+          .single()
 
         if (error) throw error
 
-        // Log to audit trail
+        // Upload files for new project
+        if (selectedFiles.length > 0) {
+          const uploadedFiles = await uploadFiles(newProject.project_id)
+          
+          await supabase
+            .from('projects')
+            .update({ attachments: uploadedFiles })
+            .eq('id', newProject.id)
+        }
+
         await supabase.from('audit_trail').insert([
           {
             record_id: `AUDIT-${Date.now()}`,
             entity: 'projects',
-            entity_id: formData.project_id,
+            entity_id: newProject.project_id,
             action: 'created',
             performed_by: profile.id,
             details: { title: formData.title }
@@ -161,6 +236,16 @@ function ProjectsView({ profile }) {
     }
   }
 
+  const handleDownloadFile = (fileUrl, fileName) => {
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = fileName
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const resetForm = () => {
     setFormData({
       project_id: '',
@@ -168,6 +253,7 @@ function ProjectsView({ profile }) {
       description: '',
       status: 'Pending Approval'
     })
+    setSelectedFiles([])
     setEditingId(null)
   }
 
@@ -227,6 +313,27 @@ function ProjectsView({ profile }) {
               <div className="card-body">
                 <p className="card-description">{project.description || 'No description provided'}</p>
                 
+                {project.attachments && project.attachments.length > 0 && (
+                  <div className="attachments-section">
+                    <h4><Paperclip size={16} /> Attachments ({project.attachments.length})</h4>
+                    <div className="attachments-list">
+                      {project.attachments.map((file, idx) => (
+                        <div key={idx} className="attachment-item">
+                          <File size={16} />
+                          <span className="attachment-name">{file.name}</span>
+                          <button
+                            onClick={() => handleDownloadFile(file.url, file.name)}
+                            className="btn-download"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="card-meta">
                   <div className="meta-item">
                     <span className="meta-label">Created by:</span>
@@ -349,12 +456,36 @@ function ProjectsView({ profile }) {
                 </div>
               )}
 
+              <div className="form-group">
+                <label htmlFor="attachments">
+                  <Upload size={16} /> Attach Files (PPT, Word, Excel, Images)
+                </label>
+                <input
+                  id="attachments"
+                  type="file"
+                  multiple
+                  accept=".ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf,.jpg,.jpeg,.png,.gif"
+                  onChange={handleFileSelect}
+                  className="file-input"
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="selected-files">
+                    <p>Selected files: {selectedFiles.length}</p>
+                    <ul>
+                      {selectedFiles.map((file, idx) => (
+                        <li key={idx}>{file.name} ({(file.size / 1024).toFixed(2)} KB)</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               <div className="modal-actions">
                 <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : (editingId ? 'Update Project' : 'Create Project')}
+                <button type="submit" className="btn-primary" disabled={loading || uploadingFiles}>
+                  {uploadingFiles ? 'Uploading files...' : loading ? 'Saving...' : (editingId ? 'Update Project' : 'Create Project')}
                 </button>
               </div>
             </form>

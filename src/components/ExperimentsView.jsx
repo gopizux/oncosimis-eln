@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { Plus, Search, Edit2, Trash2, FlaskConical, Calendar, X } from 'lucide-react'
+import { exportToWord } from '../lib/exportUtils'
+import { Plus, Search, Edit2, Trash2, FlaskConical, X, Paperclip, Upload, Download, File, FileText } from 'lucide-react'
 import './SharedStyles.css'
 
 function ExperimentsView({ profile }) {
@@ -10,6 +11,7 @@ function ExperimentsView({ profile }) {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [formData, setFormData] = useState({
     experiment_id: '',
     project_id: '',
@@ -20,6 +22,7 @@ function ExperimentsView({ profile }) {
     end_date: '',
     status: 'Planned'
   })
+  const [selectedFiles, setSelectedFiles] = useState([])
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
@@ -81,36 +84,118 @@ function ExperimentsView({ profile }) {
     }
   }
 
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files)
+    setSelectedFiles(files)
+  }
+
+  const uploadFiles = async (experimentId) => {
+    if (selectedFiles.length === 0) return []
+
+    setUploadingFiles(true)
+    const uploadedFiles = []
+
+    try {
+      for (const file of selectedFiles) {
+        const fileName = `${experimentId}/${Date.now()}_${file.name}`
+        
+        const { data, error } = await supabase.storage
+          .from('experiment-attachments')
+          .upload(fileName, file)
+
+        if (error) throw error
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('experiment-attachments')
+          .getPublicUrl(fileName)
+
+        uploadedFiles.push({
+          name: file.name,
+          path: fileName,
+          url: publicUrl,
+          size: file.size,
+          type: file.type,
+          uploaded_at: new Date().toISOString()
+        })
+      }
+
+      return uploadedFiles
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      throw error
+    } finally {
+      setUploadingFiles(false)
+    }
+  }
+
+  const handleExportToWord = async (experiment) => {
+    try {
+      await exportToWord(experiment, 'experiment')
+      alert('Experiment exported successfully!')
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Failed to export experiment')
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      let attachments = []
+      
       if (editingId) {
+        const { data: existingExperiment } = await supabase
+          .from('experiments')
+          .select('attachments')
+          .eq('id', editingId)
+          .single()
+
+        attachments = existingExperiment?.attachments || []
+
+        if (selectedFiles.length > 0) {
+          const newFiles = await uploadFiles(formData.experiment_id)
+          attachments = [...attachments, ...newFiles]
+        }
+
         const { error } = await supabase
           .from('experiments')
           .update({
             ...formData,
             project_id: formData.project_id || null,
             protocol_id: formData.protocol_id || null,
+            attachments: attachments,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingId)
 
         if (error) throw error
       } else {
-        const { error } = await supabase
+        const { data: newExperiment, error } = await supabase
           .from('experiments')
           .insert([
             {
               ...formData,
               project_id: formData.project_id || null,
               protocol_id: formData.protocol_id || null,
-              created_by: profile.id
+              created_by: profile.id,
+              attachments: []
             }
           ])
+          .select()
+          .single()
 
         if (error) throw error
+
+        if (selectedFiles.length > 0) {
+          const uploadedFiles = await uploadFiles(newExperiment.experiment_id)
+          
+          await supabase
+            .from('experiments')
+            .update({ attachments: uploadedFiles })
+            .eq('id', newExperiment.id)
+        }
       }
 
       fetchExperiments()
@@ -159,6 +244,16 @@ function ExperimentsView({ profile }) {
     }
   }
 
+  const handleDownloadFile = (fileUrl, fileName) => {
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = fileName
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const resetForm = () => {
     setFormData({
       experiment_id: '',
@@ -170,6 +265,7 @@ function ExperimentsView({ profile }) {
       end_date: '',
       status: 'Planned'
     })
+    setSelectedFiles([])
     setEditingId(null)
   }
 
@@ -233,6 +329,27 @@ function ExperimentsView({ profile }) {
                   </div>
                 )}
 
+                {experiment.attachments && experiment.attachments.length > 0 && (
+                  <div className="attachments-section">
+                    <h4><Paperclip size={16} /> Attachments ({experiment.attachments.length})</h4>
+                    <div className="attachments-list">
+                      {experiment.attachments.map((file, idx) => (
+                        <div key={idx} className="attachment-item">
+                          <File size={16} />
+                          <span className="attachment-name">{file.name}</span>
+                          <button
+                            onClick={() => handleDownloadFile(file.url, file.name)}
+                            className="btn-download"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="card-meta">
                   {experiment.projects && (
                     <div className="meta-item">
@@ -252,12 +369,6 @@ function ExperimentsView({ profile }) {
                       <span>{new Date(experiment.start_date).toLocaleDateString()}</span>
                     </div>
                   )}
-                  {experiment.end_date && (
-                    <div className="meta-item">
-                      <span className="meta-label">End Date:</span>
-                      <span>{new Date(experiment.end_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
                   <div className="meta-item">
                     <span className="meta-label">Created by:</span>
                     <span>{experiment.created_by_profile?.full_name || 'Unknown'}</span>
@@ -266,6 +377,13 @@ function ExperimentsView({ profile }) {
               </div>
 
               <div className="card-actions">
+                <button
+                  onClick={() => handleExportToWord(experiment)}
+                  className="btn-icon btn-export"
+                  title="Export to Word"
+                >
+                  <FileText size={18} />
+                </button>
                 <button
                   onClick={() => handleEdit(experiment)}
                   className="btn-icon"
@@ -403,12 +521,36 @@ function ExperimentsView({ profile }) {
                 </select>
               </div>
 
+              <div className="form-group">
+                <label htmlFor="attachments">
+                  <Upload size={16} /> Attach Files (PPT, Word, Excel, Images)
+                </label>
+                <input
+                  id="attachments"
+                  type="file"
+                  multiple
+                  accept=".ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf,.jpg,.jpeg,.png,.gif"
+                  onChange={handleFileSelect}
+                  className="file-input"
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="selected-files">
+                    <p>Selected files: {selectedFiles.length}</p>
+                    <ul>
+                      {selectedFiles.map((file, idx) => (
+                        <li key={idx}>{file.name} ({(file.size / 1024).toFixed(2)} KB)</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               <div className="modal-actions">
                 <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : (editingId ? 'Update Experiment' : 'Create Experiment')}
+                <button type="submit" className="btn-primary" disabled={loading || uploadingFiles}>
+                  {uploadingFiles ? 'Uploading files...' : loading ? 'Saving...' : (editingId ? 'Update Experiment' : 'Create Experiment')}
                 </button>
               </div>
             </form>

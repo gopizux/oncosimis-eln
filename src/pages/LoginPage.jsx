@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { Mail, Lock, AlertCircle } from 'lucide-react'
 import './LoginPage.css'
@@ -11,6 +11,15 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    // Ensure video loops properly
+    if (videoRef.current) {
+      videoRef.current.loop = true
+      videoRef.current.play().catch(err => console.log('Video autoplay prevented:', err))
+    }
+  }, [])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -64,7 +73,20 @@ function LoginPage() {
 
   return (
     <div className="login-container">
-      <video autoPlay loop muted playsInline className="background-video">
+      <video 
+        ref={videoRef}
+        autoPlay 
+        loop 
+        muted 
+        playsInline 
+        className="background-video"
+        onEnded={() => {
+          if (videoRef.current) {
+            videoRef.current.currentTime = 0
+            videoRef.current.play()
+          }
+        }}
+      >
         <source src="/background.mp4" type="video/mp4" />
       </video>
       
@@ -75,7 +97,7 @@ function LoginPage() {
           <div className="login-header">
             <img src="/osb_logo.png" alt="Oncosimis Logo" className="login-logo" />
             <h1 className="login-title">Oncosimis ELN</h1>
-            <p className="login-subtitle">Electronic Lab Notebook</p>
+            <p className="login-subtitle">Where Science Meets Organization</p>
           </div>
 
           {error && (

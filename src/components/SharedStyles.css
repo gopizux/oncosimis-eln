@@ -656,3 +656,265 @@
   }
 }
 
+/* Tabs styling */
+.tabs-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+  color: var(--light-navy);
+  background: var(--hover-color);
+}
+
+.tab-btn.active {
+  color: var(--primary-navy);
+  border-bottom-color: var(--primary-navy);
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+/* Product and Order specific styles */
+.product-info,
+.order-info,
+.plasmid-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.product-notes,
+.order-notes {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.product-notes strong,
+.order-notes strong {
+  color: var(--primary-navy);
+}
+
+/* QC Status badges */
+.status-qc-pass {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-qc-fail {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-qc-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-qc-n\/a {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Additional order statuses */
+.status-requested {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-shipped {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-in-transit {
+  background: #e0e7ff;
+  color: #4c1d95;
+}
+
+@media (max-width: 768px) {
+  .tabs-container {
+    gap: 0.25rem;
+  }
+
+  .tab-btn {
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Attachments Section */
+.attachments-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.attachments-section h4 {
+  font-size: 0.875rem;
+  color: var(--primary-navy);
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.attachment-item:hover {
+  border-color: var(--light-navy);
+  background: var(--hover-color);
+}
+
+.attachment-item svg {
+  flex-shrink: 0;
+  color: var(--light-navy);
+}
+
+.attachment-name {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-download {
+  padding: 0.25rem 0.5rem;
+  background: var(--light-navy);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.btn-download:hover {
+  background: var(--primary-navy);
+  transform: scale(1.05);
+}
+
+/* File Input Styling */
+.file-input {
+  padding: 0.75rem;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.file-input:hover {
+  border-color: var(--light-navy);
+  background: var(--hover-color);
+}
+
+.selected-files {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+}
+
+.selected-files p {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--primary-navy);
+  font-size: 0.875rem;
+}
+
+.selected-files ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.selected-files li {
+  margin: 0.25rem 0;
+}
+
+/* Export Button */
+.btn-export {
+  border-color: #8b5cf6 !important;
+  color: #8b5cf6 !important;
+}
+
+.btn-export:hover {
+  background: #ede9fe !important;
+}
+
+/* SOP Badge */
+.status-sop {
+  background: #e0e7ff;
+  color: #4c1d95;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .attachments-list {
+    gap: 0.375rem;
+  }
+
+  .attachment-item {
+    padding: 0.375rem;
+  }
+
+  .attachment-name {
+    font-size: 0.8125rem;
+  }
+
+  .btn-download {
+    padding: 0.25rem;
+  }
+}
+

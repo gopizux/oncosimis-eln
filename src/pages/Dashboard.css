@@ -55,7 +55,11 @@
   left: 0;
   top: 0;
   z-index: 1000;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px;
 }
 
 .sidebar-header {
@@ -66,10 +70,15 @@
   gap: 1rem;
 }
 
-.sidebar-logo {
+.sidebar.collapsed .sidebar-header {
+  padding: 2rem 1rem;
+  justify-content: center;
+}
+
+.sidebar-logo-round {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 50%;
   object-fit: contain;
   background: white;
   padding: 0.25rem;
@@ -100,6 +109,31 @@
   text-overflow: ellipsis;
 }
 
+.sidebar-toggle-btn {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: white;
+  border: 2px solid var(--primary-navy);
+  border-radius: 50%;
+  color: var(--primary-navy);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1001;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--primary-navy);
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
 .sidebar-nav {
   flex: 1;
   padding: 1.5rem 1rem;
@@ -107,6 +141,10 @@
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 1.5rem 0.5rem;
 }
 
 .nav-item {
@@ -124,6 +162,15 @@
   transition: all 0.3s ease;
   text-align: left;
   width: 100%;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0.875rem 0.5rem;
+}
+
+.sidebar.collapsed .nav-item span {
+  display: none;
 }
 
 .nav-item svg {
@@ -149,12 +196,22 @@
   gap: 1rem;
 }
 
+.sidebar.collapsed .sidebar-footer {
+  flex-direction: column;
+  padding: 1rem 0.5rem;
+}
+
 .user-info {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
+}
+
+.sidebar.collapsed .user-info {
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .user-avatar {
@@ -220,6 +277,59 @@
   transform: scale(0.95);
 }
 
+.developer-contact {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar.collapsed .developer-contact {
+  padding: 1rem 0.5rem;
+}
+
+.dev-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed .dev-link {
+  justify-content: center;
+  padding: 0.875rem 0.5rem;
+}
+
+.sidebar.collapsed .dev-link > div {
+  display: none;
+}
+
+.dev-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.dev-link span {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.dev-link p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dev-link small {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  display: block;
+  margin-top: 0.25rem;
+}
+
 .main-content {
   flex: 1;
   margin-left: 280px;
@@ -228,10 +338,18 @@
   transition: margin-left 0.3s ease;
 }
 
+.main-content.expanded {
+  margin-left: 80px;
+}
+
 /* Tablet styles */
 @media (max-width: 1024px) {
   .sidebar {
     width: 240px;
+  }
+
+  .sidebar.collapsed {
+    width: 70px;
   }
 
   .main-content {
@@ -239,21 +357,8 @@
     padding: 1.5rem;
   }
 
-  .sidebar-header {
-    padding: 1.5rem 1rem;
-  }
-
-  .sidebar-logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .sidebar-header h2 {
-    font-size: 1.125rem;
-  }
-
-  .sidebar-header p {
-    font-size: 0.7rem;
+  .main-content.expanded {
+    margin-left: 70px;
   }
 }
 
@@ -270,13 +375,12 @@
     transition: opacity 0.3s ease;
   }
 
-  .sidebar-overlay.active {
-    opacity: 1;
-    pointer-events: all;
-  }
-
   .sidebar {
     transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .sidebar.collapsed {
     width: 280px;
   }
 
@@ -289,9 +393,17 @@
     pointer-events: all;
   }
 
+  .sidebar-toggle-btn {
+    display: none;
+  }
+
   .main-content {
     margin-left: 0;
     padding: 5rem 1rem 1rem;
+  }
+
+  .main-content.expanded {
+    margin-left: 0;
   }
 }
 
@@ -314,76 +426,15 @@
   }
 }
 
-/* Landscape orientation on tablets */
-@media (max-width: 1024px) and (orientation: landscape) {
-  .sidebar {
-    width: 220px;
-  }
-
-  .main-content {
-    margin-left: 220px;
-  }
-
-  .sidebar-header {
-    padding: 1rem;
-  }
-
-  .sidebar-nav {
-    padding: 1rem 0.75rem;
-  }
-
-  .nav-item {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.875rem;
-  }
-}
-
-/* Large desktop styles */
-@media (min-width: 1440px) {
-  .sidebar {
-    width: 300px;
-  }
-
-  .main-content {
-    margin-left: 300px;
-    padding: 2.5rem;
-  }
-
-  .sidebar-header {
-    padding: 2.5rem 1.75rem;
-  }
-
-  .sidebar-logo {
-    width: 52px;
-    height: 52px;
-  }
-
-  .sidebar-header h2 {
-    font-size: 1.375rem;
-  }
-
-  .sidebar-header p {
-    font-size: 0.8125rem;
-  }
-}
-
-/* Extra large desktop */
-@media (min-width: 1920px) {
-  .main-content {
-    max-width: 1600px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 320px;
-  }
-}
-
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .mobile-menu-btn,
   .nav-item,
   .btn-logout,
-  .sidebar-overlay {
+  .sidebar-overlay,
+  .sidebar-toggle-btn,
+  .dev-link {
     transition: none !important;
   }
 }
